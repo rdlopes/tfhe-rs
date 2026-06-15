@@ -26,17 +26,7 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CUDAFILE ${CMAKE_CURRENT_SOURCE_DIR}/check_cuda.cu)
 if(WIN32)
   set(OUTPUTFILE ${CMAKE_CURRENT_SOURCE_DIR}/cuda_script.exe)
-  execute_process(
-    COMMAND ${CMAKE_CXX_COMPILER} /TP /FIcuda_runtime.h /I"$ENV{CUDA_PATH}/include" ${CUDAFILE} /link /LIBPATH:"$ENV{CUDA_PATH}/lib/x64" cudart.lib /OUT:${OUTPUTFILE}
-    RESULT_VARIABLE COMPILE_RESULT
-    OUTPUT_VARIABLE COMPILE_OUTPUT
-    ERROR_VARIABLE COMPILE_ERROR
-  )
-  if(NOT COMPILE_RESULT EQUAL 0)
-    message(WARNING "Failed to compile check_cuda: ${COMPILE_ERROR}")
-  endif()
-  # Also remove the generated object file check_cuda.obj
-  file(REMOVE ${CMAKE_CURRENT_SOURCE_DIR}/check_cuda.obj)
+  execute_process(COMMAND nvcc ${CUDAFILE} -o ${OUTPUTFILE})
 else()
   set(OUTPUTFILE ${CMAKE_CURRENT_SOURCE_DIR}/cuda_script)
   execute_process(COMMAND nvcc -lcuda ${CUDAFILE} -o ${OUTPUTFILE})
