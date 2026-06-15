@@ -79,10 +79,10 @@ public:
   constexpr static int direction = 1;
 };
 
-class ReorderFFT {
+struct ReorderFFT {
   constexpr static int reorder = 1;
 };
-class NoReorderFFT {
+struct NoReorderFFT {
   constexpr static int reorder = 0;
 };
 
