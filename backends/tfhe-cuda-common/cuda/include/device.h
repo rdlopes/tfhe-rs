@@ -5,6 +5,13 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cuda_runtime.h>
+#include <cuda_fp16.h>
+
+#ifdef _MSC_VER
+typedef unsigned int uint;
+typedef __int128 __int128_t;
+typedef unsigned __int128 __uint128_t;
+#endif
 
 #define CEIL_DIV(M, N) (((M) + (N)-1) / (N))
 
