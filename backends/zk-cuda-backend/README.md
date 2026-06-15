@@ -66,7 +66,7 @@ let (result, size_tracker) = G1Projective::msm(&points, &scalars, stream, gpu_in
 See the [basic examples](cuda/tests_and_benchmarks/tests/basic/) for complete working programs.
 ## Dependencies
 
-**Disclaimer**: Compilation on Windows/Mac is not supported. Only Nvidia GPUs are supported.
+**Disclaimer**: Compilation on macOS is not supported yet. Windows (via MSVC/nvcc) and Linux are supported. Only Nvidia GPUs are supported.
 
 - nvidia driver — GPU with Compute Capability ≥ 3.0 (e.g. Ubuntu 20.04: [installation guide](https://linuxconfig.org/how-to-install-the-nvidia-drivers-on-ubuntu-20-04-focal-fossa-linux))
 - [nvcc](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html) ≥ 10.0
