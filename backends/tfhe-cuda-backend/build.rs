@@ -29,6 +29,18 @@ fn main() {
     // Platform/distro check is performed by tfhe-cuda-common's build.rs, which
     // Cargo builds first as a dependency.
     if std::env::consts::OS == "linux" || std::env::consts::OS == "windows" {
+        if std::env::consts::OS == "windows" {
+            // Force MSVC compiler version 14.44.35207 to prevent nvcc/cudafe++ crashes under VS 2026
+            let msvc_toolset_dir = "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.44.35207";
+            if std::path::Path::new(msvc_toolset_dir).exists() {
+                std::env::set_var("VCToolsVersion", "14.44.35207");
+                let bin_dir = format!("{}\\bin\\HostX64\\x64", msvc_toolset_dir);
+                if let Ok(current_path) = std::env::var("PATH") {
+                    std::env::set_var("PATH", format!("{};{}", bin_dir, current_path));
+                }
+            }
+        }
+
         let mut cmake_config = cmake::Config::new("cuda");
 
         // Conditionally pass the "MULTI_ARCH" variable to CMake if the feature is enabled
