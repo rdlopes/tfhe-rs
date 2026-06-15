@@ -2,6 +2,7 @@
 #define CUDA_INTEGER_SCALAR_BITWISE_OPS_CUH
 
 #include "integer/bitwise_ops.cuh"
+#include <vector>
 
 template <typename Torus, typename KSTorus>
 __host__ void
@@ -31,15 +32,15 @@ host_scalar_bitop(CudaStreams streams, CudaRadixCiphertextFFI *output,
   } else {
     // We have all possible LUTs pre-computed and we use the decomposed scalar
     // as index to recover the right one
-    uint64_t degrees[num_clear_blocks];
+    std::vector<uint64_t> degrees(num_clear_blocks);
     if (mem_ptr->op == BITOP_TYPE::SCALAR_BITAND) {
-      update_degrees_after_scalar_bitand(degrees, h_clear_blocks,
+      update_degrees_after_scalar_bitand(degrees.data(), h_clear_blocks,
                                          input->degrees, num_clear_blocks);
     } else if (mem_ptr->op == BITOP_TYPE::SCALAR_BITOR) {
-      update_degrees_after_scalar_bitor(degrees, h_clear_blocks, input->degrees,
+      update_degrees_after_scalar_bitor(degrees.data(), h_clear_blocks, input->degrees,
                                         num_clear_blocks);
     } else if (mem_ptr->op == SCALAR_BITXOR) {
-      update_degrees_after_scalar_bitxor(degrees, h_clear_blocks,
+      update_degrees_after_scalar_bitxor(degrees.data(), h_clear_blocks,
                                          input->degrees, num_clear_blocks);
     }
     auto active_streams = streams.active_gpu_subset(
@@ -49,7 +50,7 @@ host_scalar_bitop(CudaStreams streams, CudaRadixCiphertextFFI *output,
 
     integer_radix_apply_univariate_lookup_table<Torus>(
         streams, output, input, bsks, ksks, lut, num_clear_blocks);
-    memcpy(output->degrees, degrees,
+    memcpy(output->degrees, degrees.data(),
            safe_mul_sizeof<uint64_t>(num_clear_blocks));
 
     if (op == SCALAR_BITAND && num_clear_blocks < num_radix_blocks) {

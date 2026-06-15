@@ -3,6 +3,7 @@
 
 #include "crypto/keyswitch.cuh"
 #include "device.h"
+#include <vector>
 #include "integer.cuh"
 #include "integer/cmux.cuh"
 #include "integer/comparison.h"
@@ -106,7 +107,7 @@ __host__ void are_all_comparisons_block_true(
     auto accumulator_ptr =
         (Torus *)are_all_block_true_buffer->tmp_block_accumulated->ptr;
     auto is_max_value_lut = are_all_block_true_buffer->is_max_value;
-    uint32_t chunk_lengths[num_chunks];
+    std::vector<uint32_t> chunk_lengths(num_chunks);
     auto begin_remaining_blocks = remaining_blocks;
     for (int i = 0; i < num_chunks; i++) {
       uint32_t chunk_length =
@@ -221,7 +222,7 @@ __host__ void is_at_least_one_comparisons_block_true(
     // as in the worst case we will be adding `max_value` ones
     auto input_blocks = (Torus *)mem_ptr->tmp_lwe_array_out->ptr;
     auto accumulator = (Torus *)buffer->tmp_block_accumulated->ptr;
-    uint32_t chunk_lengths[num_chunks];
+    std::vector<uint32_t> chunk_lengths(num_chunks);
     auto begin_remaining_blocks = remaining_blocks;
     for (int i = 0; i < num_chunks; i++) {
       uint32_t chunk_length =
