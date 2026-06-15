@@ -9,8 +9,10 @@
 
 #ifdef _MSC_VER
 typedef unsigned int uint;
+#ifndef __clang__
 typedef int64_t __int128_t;
 typedef uint64_t __uint128_t;
+#endif
 #endif
 
 #define CEIL_DIV(M, N) (((M) + (N)-1) / (N))
