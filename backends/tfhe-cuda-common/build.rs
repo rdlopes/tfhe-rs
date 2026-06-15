@@ -26,11 +26,11 @@ fn main() {
     println!("cargo::rerun-if-changed=cuda/CMakeLists.txt");
     println!("cargo::rerun-if-changed=src");
 
-    if std::env::consts::OS == "linux" {
+    if std::env::consts::OS == "linux" || std::env::consts::OS == "windows" {
         let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")
             .expect("CARGO_MANIFEST_DIR must be set by cargo during build");
 
-        if get_linux_distribution_name().as_deref() != Some("Ubuntu") {
+        if std::env::consts::OS == "linux" && get_linux_distribution_name().as_deref() != Some("Ubuntu") {
             println!(
                 "cargo:warning=This Linux distribution is not officially supported. \
                 Only Ubuntu is supported by tfhe-cuda-common at this time. Build may fail\n"
@@ -55,19 +55,35 @@ fn main() {
             "cargo:rustc-link-search=native={}",
             dest.join("lib").display()
         );
+        if std::env::consts::OS == "windows" {
+            println!(
+                "cargo:rustc-link-search=native={}",
+                dest.join("lib/Release").display()
+            );
+            println!(
+                "cargo:rustc-link-search=native={}",
+                dest.join("lib/Debug").display()
+            );
+        }
         println!("cargo:rustc-link-lib=static=tfhe_cuda_common");
 
-        if pkg_config::Config::new()
-            .atleast_version("10")
-            .probe("cuda")
-            .is_err()
-        {
-            println!("cargo:rustc-link-search=native=/usr/local/cuda/lib64");
+        if std::env::consts::OS == "windows" {
+            if let Ok(cuda_path) = std::env::var("CUDA_PATH") {
+                println!("cargo:rustc-link-search=native={}\\lib\\x64", cuda_path);
+            }
+            println!("cargo:rustc-link-lib=cudart");
+        } else {
+            if pkg_config::Config::new()
+                .atleast_version("10")
+                .probe("cuda")
+                .is_err()
+            {
+                println!("cargo:rustc-link-search=native=/usr/local/cuda/lib64");
+            }
+            println!("cargo:rustc-link-lib=cudart");
+            println!("cargo:rustc-link-search=native=/usr/lib/x86_64-linux-gnu/");
+            println!("cargo:rustc-link-lib=stdc++");
         }
-
-        println!("cargo:rustc-link-lib=cudart");
-        println!("cargo:rustc-link-search=native=/usr/lib/x86_64-linux-gnu/");
-        println!("cargo:rustc-link-lib=stdc++");
 
         // When a build script emits `cargo:KEY=VALUE` and the crate declares
         // `links = "foo"` in Cargo.toml, Cargo exposes it to dependent crates
@@ -86,7 +102,7 @@ fn main() {
         generate_cuda_bind_bindings(&manifest_dir, &include_dir);
     } else {
         panic!(
-            "Error: platform not supported, tfhe-cuda-common not built (only Linux is supported)"
+            "Error: platform not supported, tfhe-cuda-common not built (only Linux and Windows are supported)"
         );
     }
 }
@@ -112,7 +128,7 @@ fn generate_cuda_bind_bindings(manifest_dir: &str, include_dir: &PathBuf) {
     }
 
     if headers_modified > bindings_modified {
-        let bindings = bindgen::Builder::default()
+        let mut builder = bindgen::Builder::default()
             .header(header_path.to_str().unwrap())
             .allowlist_function("cuda_.*")
             .blocklist_type("CUstream_st")
@@ -123,7 +139,13 @@ fn generate_cuda_bind_bindings(manifest_dir: &str, include_dir: &PathBuf) {
             .clang_arg(format!("-I{}", include_dir.display()))
             .clang_arg("-I/usr/include")
             .clang_arg("-I/usr/local/include")
-            .clang_arg("-I/usr/local/cuda/include")
+            .clang_arg("-I/usr/local/cuda/include");
+
+        if let Ok(cuda_path) = std::env::var("CUDA_PATH") {
+            builder = builder.clang_arg(format!("-I{}/include", cuda_path));
+        }
+
+        let bindings = builder
             .ctypes_prefix("ffi")
             .raw_line("use crate::ffi;")
             .generate()
