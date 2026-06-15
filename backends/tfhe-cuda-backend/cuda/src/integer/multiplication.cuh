@@ -26,7 +26,7 @@ all_shifted_lhs_rhs(Torus const *radix_lwe_left, Torus *lsb_ciphertext,
                     Torus *lsb_rhs, Torus *msb_rhs, int num_blocks) {
 
   size_t block_id = blockIdx.x;
-  double D = sqrt((2 * num_blocks + 1) * (2 * num_blocks + 1) - 8 * block_id);
+  double D = sqrt((double)((2 * num_blocks + 1) * (2 * num_blocks + 1) - 8 * block_id));
   size_t radix_id = int((2 * num_blocks + 1 - D) / 2.);
   size_t local_block_id =
       block_id - (2 * num_blocks - radix_id + 1) / 2. * radix_id;
