@@ -21,6 +21,14 @@ inline int __builtin_clzll(unsigned __int64 x) {
   unsigned long index;
   return _BitScanReverse64(&index, x) ? (63 - index) : 64;
 }
+inline int __builtin_ctz(unsigned int x) {
+  unsigned long index;
+  return _BitScanForward(&index, x) ? index : 32;
+}
+inline int __builtin_ctzll(unsigned __int64 x) {
+  unsigned long index;
+  return _BitScanForward64(&index, x) ? index : 64;
+}
 #endif
 #endif
 
