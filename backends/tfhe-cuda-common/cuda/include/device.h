@@ -36,7 +36,9 @@ inline void cuda_error(cudaError_t code, const char *file, int line) {
 #define PANIC_IF_FALSE(cond, format, ...)                                      \
   do {                                                                         \
     if (!(cond)) {                                                             \
-      PANIC(format "\n\n %s\n", ##__VA_ARGS__, #cond);                         \
+      std::fprintf(stderr, "%s::%d::%s: panic.\n" format "\n\n %s\n",          \
+                   __FILE__, __LINE__, __func__, ##__VA_ARGS__, #cond);        \
+      std::abort();                                                            \
     }                                                                          \
   } while (0)
 
