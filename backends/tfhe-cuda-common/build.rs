@@ -109,7 +109,8 @@ fn main() {
 
 fn generate_cuda_bind_bindings(manifest_dir: &str, include_dir: &PathBuf) {
     let header_path = include_dir.join("device.h");
-    let headers = [header_path.to_str().unwrap()];
+    let build_script_path = PathBuf::from(manifest_dir).join("build.rs");
+    let headers = [header_path.to_str().unwrap(), build_script_path.to_str().unwrap()];
     let out_path = PathBuf::from(manifest_dir).join("src").join("cuda_bind.rs");
 
     let bindings_modified = if out_path.exists() {
