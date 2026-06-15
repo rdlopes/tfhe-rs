@@ -136,7 +136,7 @@ __host__ void host_boolean_bitop(CudaStreams streams,
   }
 
   auto lut = mem_ptr->lut;
-  uint64_t degrees[lwe_array_left.num_radix_blocks];
+  uint64_t *degrees = new uint64_t[lwe_array_left.num_radix_blocks];
   if (mem_ptr->op == BITOP_TYPE::BITAND) {
     update_degrees_after_bitand(degrees, lwe_array_left.degrees,
                                 lwe_array_right.degrees,
@@ -159,6 +159,7 @@ __host__ void host_boolean_bitop(CudaStreams streams,
 
   memcpy(lwe_array_out->degrees, degrees,
          safe_mul_sizeof<uint64_t>(lwe_array_out->num_radix_blocks));
+  delete[] degrees;
 }
 
 // updates degrees based on `ct_message_modulus`
