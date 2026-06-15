@@ -12,7 +12,6 @@ typedef unsigned int uint;
 #ifndef __clang__
 typedef int64_t __int128_t;
 typedef uint64_t __uint128_t;
-#endif
 #include <intrin.h>
 inline int __builtin_clz(unsigned int x) {
   unsigned long index;
@@ -22,6 +21,7 @@ inline int __builtin_clzll(unsigned __int64 x) {
   unsigned long index;
   return _BitScanReverse64(&index, x) ? (63 - index) : 64;
 }
+#endif
 #endif
 
 #define CEIL_DIV(M, N) (((M) + (N)-1) / (N))
