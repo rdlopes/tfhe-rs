@@ -19,7 +19,19 @@ fn main() {
 
     // Platform/distro check is performed by tfhe-cuda-common's build.rs, which
     // Cargo builds first as a dependency.
-    if std::env::consts::OS == "linux" {
+    if std::env::consts::OS == "linux" || std::env::consts::OS == "windows" {
+        if std::env::consts::OS == "windows" {
+            // Force MSVC compiler version 14.44.35207 to prevent nvcc/cudafe++ crashes under VS 2026
+            let msvc_toolset_dir = "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.44.35207";
+            if std::path::Path::new(msvc_toolset_dir).exists() {
+                std::env::set_var("VCToolsVersion", "14.44.35207");
+                let bin_dir = format!("{}\\bin\\HostX64\\x64", msvc_toolset_dir);
+                if let Ok(current_path) = std::env::var("PATH") {
+                    std::env::set_var("PATH", format!("{};{}", bin_dir, current_path));
+                }
+            }
+        }
+
         let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")
             .expect("CARGO_MANIFEST_DIR must be set by cargo during build");
 
@@ -41,20 +53,37 @@ fn main() {
             "cargo:rustc-link-search=native={}",
             dest.join("lib").display()
         );
+        if std::env::consts::OS == "windows" {
+            println!(
+                "cargo:rustc-link-search=native={}",
+                dest.join("lib/Release").display()
+            );
+            println!(
+                "cargo:rustc-link-search=native={}",
+                dest.join("lib/Debug").display()
+            );
+        }
         println!("cargo:rustc-link-lib=static=zk_cuda_backend");
 
         // Find CUDA libs with pkg_config, fallback to standard path if not found
-        if pkg_config::Config::new()
-            .atleast_version("10")
-            .probe("cuda")
-            .is_err()
-        {
-            println!("cargo:rustc-link-search=native=/usr/local/cuda/lib64");
-        }
+        if std::env::consts::OS == "windows" {
+            if let Ok(cuda_path) = std::env::var("CUDA_PATH") {
+                println!("cargo:rustc-link-search=native={}\\lib\\x64", cuda_path);
+            }
+            println!("cargo:rustc-link-lib=cudart");
+        } else {
+            if pkg_config::Config::new()
+                .atleast_version("10")
+                .probe("cuda")
+                .is_err()
+            {
+                println!("cargo:rustc-link-search=native=/usr/local/cuda/lib64");
+            }
 
-        println!("cargo:rustc-link-lib=cudart");
-        println!("cargo:rustc-link-search=native=/usr/lib/x86_64-linux-gnu/");
-        println!("cargo:rustc-link-lib=stdc++");
+            println!("cargo:rustc-link-lib=cudart");
+            println!("cargo:rustc-link-search=native=/usr/lib/x86_64-linux-gnu/");
+            println!("cargo:rustc-link-lib=stdc++");
+        }
 
         // Generate Rust bindings from C headers using bindgen
         let header_path = PathBuf::from(&manifest_dir).join("wrapper.h");
@@ -118,17 +147,24 @@ fn main() {
                 .clang_arg(format!("-I{}", src_include.display()))
                 .clang_arg("-I/usr/include")
                 .clang_arg("-I/usr/local/include")
-                .clang_arg("-I/usr/local/cuda/include")
+                .clang_arg("-I/usr/local/cuda/include");
+
+            let mut builder = bindings;
+            if let Ok(cuda_path) = std::env::var("CUDA_PATH") {
+                builder = builder.clang_arg(format!("-I{}/include", cuda_path));
+            }
+
+            let bindings_generated = builder
                 .generate()
                 .expect("Unable to generate bindings");
 
-            bindings
+            bindings_generated
                 .write_to_file(&out_path)
                 .expect("Couldn't write bindings!");
         }
     } else {
         panic!(
-            "Error: platform not supported, zk-cuda-backend not built (only Linux is supported)"
+            "Error: platform not supported, zk-cuda-backend not built (only Linux and Windows are supported)"
         );
     }
 }
