@@ -22,7 +22,7 @@ The cryptographic operations it provides are:
 
 ## Dependencies
 
-**Disclaimer**: Compilation on Windows/Mac is not supported yet. Only Nvidia GPUs are supported. 
+**Disclaimer**: Compilation on macOS is not supported yet. Windows (via MSVC/nvcc) and Linux are supported. Only Nvidia GPUs are supported. 
 
 - nvidia driver - for example, if you're running Ubuntu 20.04 check this [page](https://linuxconfig.org/how-to-install-the-nvidia-drivers-on-ubuntu-20-04-focal-fossa-linux) for installation. You need an Nvidia GPU with Compute Capability >= 3.0
 - [nvcc](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html) >= 10.0
