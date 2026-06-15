@@ -151,6 +151,8 @@ fn generate_cuda_bind_bindings(manifest_dir: &str, include_dir: &PathBuf) {
         let bindings = builder
             .ctypes_prefix("ffi")
             .raw_line("use crate::ffi;")
+            .raw_line("pub type cudaStream_t = *mut ffi::c_void;")
+            .raw_line("pub type cudaEvent_t = *mut ffi::c_void;")
             .generate()
             .expect("Unable to generate cuda_bind bindings");
 
