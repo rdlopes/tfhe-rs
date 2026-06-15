@@ -133,6 +133,8 @@ fn generate_cuda_bind_bindings(manifest_dir: &str, include_dir: &PathBuf) {
             .allowlist_function("cuda_.*")
             .blocklist_type("CUstream_st")
             .blocklist_type("CUevent_st")
+            .blocklist_type("cudaStream_t")
+            .blocklist_type("cudaEvent_t")
             .clang_arg("-x")
             .clang_arg("c++")
             .clang_arg("-std=c++17")
