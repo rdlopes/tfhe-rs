@@ -216,6 +216,34 @@ void test_compressed_public_keygen(ShortintPBSParameters params) {
   shortint_destroy_ciphertext(ct);
 }
 
+void test_ciphertext_clone(void) {
+  ShortintClientKey *cks = NULL;
+  ShortintServerKey *sks = NULL;
+  ShortintCiphertext *ct = NULL;
+  ShortintCiphertext *cloned_ct = NULL;
+  ShortintPBSParameters params = SHORTINT_V1_6_PARAM_MESSAGE_2_CARRY_2_KS_PBS_GAUSSIAN_2M128;
+
+  int gen_keys_ok = shortint_gen_keys_with_parameters(params, &cks, &sks);
+  assert(gen_keys_ok == 0);
+
+  int encrypt_ok = shortint_client_key_encrypt(cks, 3, &ct);
+  assert(encrypt_ok == 0);
+
+  int clone_ok = shortint_ciphertext_clone(ct, &cloned_ct);
+  assert(clone_ok == 0);
+  assert(cloned_ct != NULL);
+
+  uint64_t result = -1;
+  int decrypt_ok = shortint_client_key_decrypt(cks, cloned_ct, &result);
+  assert(decrypt_ok == 0);
+  assert(result == 3);
+
+  shortint_destroy_client_key(cks);
+  shortint_destroy_server_key(sks);
+  shortint_destroy_ciphertext(ct);
+  shortint_destroy_ciphertext(cloned_ct);
+}
+
 int main(void) {
   test_predefined_keygen_w_serde();
   test_custom_keygen();
@@ -224,5 +252,6 @@ int main(void) {
   test_compressed_public_keygen(SHORTINT_V1_6_PARAM_MESSAGE_2_CARRY_2_KS_PBS_GAUSSIAN_2M128);
   test_compressed_public_keygen(SHORTINT_V1_6_PARAM_MESSAGE_2_CARRY_2_PBS_KS_GAUSSIAN_2M128);
   test_server_key_trivial_encrypt();
+  test_ciphertext_clone();
   return EXIT_SUCCESS;
 }
