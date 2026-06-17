@@ -1,7 +1,8 @@
 use crate::c_api::high_level_api::booleans::FheBool;
 use crate::c_api::high_level_api::integers::{
-    FheUint10, FheUint12, FheUint128, FheUint14, FheUint16, FheUint2, FheUint256, FheUint32,
-    FheUint4, FheUint6, FheUint64, FheUint8,
+    FheInt10, FheInt12, FheInt128, FheInt14, FheInt16, FheInt2, FheInt256, FheInt32, FheInt4,
+    FheInt6, FheInt64, FheInt8, FheUint10, FheUint12, FheUint128, FheUint14, FheUint16, FheUint2,
+    FheUint256, FheUint32, FheUint4, FheUint6, FheUint64, FheUint8,
 };
 
 macro_rules! impl_array_fn {
@@ -47,8 +48,22 @@ impl_array_fn!(
 );
 
 impl_array_fn!(
+    name: array_eq,
+    inner_func: crate::high_level_api::array::fhe_int_array_eq,
+    output_type_name: FheBool,
+    type_name: FheInt2, FheInt4, FheInt6, FheInt8, FheInt10, FheInt12, FheInt14, FheInt16, FheInt32, FheInt64, FheInt128, FheInt256,
+);
+
+impl_array_fn!(
     name: array_contains_sub_slice,
     inner_func: crate::high_level_api::array::fhe_uint_array_contains_sub_slice,
     output_type_name: FheBool,
     type_name: FheUint2, FheUint4, FheUint6, FheUint8, FheUint10, FheUint12, FheUint14, FheUint16, FheUint32, FheUint64, FheUint128, FheUint256,
+);
+
+impl_array_fn!(
+    name: array_contains_sub_slice,
+    inner_func: crate::high_level_api::array::fhe_int_array_contains_sub_slice,
+    output_type_name: FheBool,
+    type_name: FheInt2, FheInt4, FheInt6, FheInt8, FheInt10, FheInt12, FheInt14, FheInt16, FheInt32, FheInt64, FheInt128, FheInt256,
 );

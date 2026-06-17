@@ -452,6 +452,106 @@ pub fn fhe_uint_array_contains_sub_slice<Id: FheUintId>(
     })
 }
 
+pub fn fhe_int_array_eq<Id: FheIntId>(lhs: &[FheInt<Id>], rhs: &[FheInt<Id>]) -> FheBool {
+    global_state::with_internal_keys(|sks| match sks {
+        InternalServerKey::Cpu(cpu_key) => {
+            let tmp_lhs = lhs
+                .iter()
+                .map(|fhe_int| fhe_int.ciphertext.on_cpu().to_owned())
+                .collect::<Vec<_>>();
+            let tmp_rhs = rhs
+                .iter()
+                .map(|fhe_int| fhe_int.ciphertext.on_cpu().to_owned())
+                .collect::<Vec<_>>();
+
+            let result = cpu_key
+                .pbs_key()
+                .all_eq_slices_parallelized(&tmp_lhs, &tmp_rhs);
+            FheBool::new(
+                result,
+                cpu_key.tag.clone(),
+                ReRandomizationMetadata::default(),
+            )
+        }
+        #[cfg(feature = "gpu")]
+        InternalServerKey::Cuda(gpu_key) => {
+            let streams = &gpu_key.streams;
+            let tmp_lhs = lhs
+                .iter()
+                .map(|fhe_int| fhe_int.clone().ciphertext.into_gpu(streams))
+                .collect::<Vec<_>>();
+            let tmp_rhs = rhs
+                .iter()
+                .map(|fhe_int| fhe_int.clone().ciphertext.into_gpu(streams))
+                .collect::<Vec<_>>();
+
+            let result = gpu_key.key.key.all_eq_slices(&tmp_lhs, &tmp_rhs, streams);
+            FheBool::new(
+                result,
+                gpu_key.tag.clone(),
+                ReRandomizationMetadata::default(),
+            )
+        }
+        #[cfg(feature = "hpu")]
+        InternalServerKey::Hpu(_device) => {
+            panic!("Hpu does not support Array yet.")
+        }
+    })
+}
+
+pub fn fhe_int_array_contains_sub_slice<Id: FheIntId>(
+    lhs: &[FheInt<Id>],
+    pattern: &[FheInt<Id>],
+) -> FheBool {
+    global_state::with_internal_keys(|sks| match sks {
+        InternalServerKey::Cpu(cpu_key) => {
+            let tmp_lhs = lhs
+                .iter()
+                .map(|fhe_int| fhe_int.ciphertext.on_cpu().to_owned())
+                .collect::<Vec<_>>();
+            let tmp_pattern = pattern
+                .iter()
+                .map(|fhe_int| fhe_int.ciphertext.on_cpu().to_owned())
+                .collect::<Vec<_>>();
+
+            let result = cpu_key
+                .pbs_key()
+                .contains_sub_slice_parallelized(&tmp_lhs, &tmp_pattern);
+            FheBool::new(
+                result,
+                cpu_key.tag.clone(),
+                ReRandomizationMetadata::default(),
+            )
+        }
+        #[cfg(feature = "gpu")]
+        InternalServerKey::Cuda(gpu_key) => {
+            let streams = &gpu_key.streams;
+            let tmp_lhs = lhs
+                .iter()
+                .map(|fhe_int| fhe_int.clone().ciphertext.into_gpu(streams))
+                .collect::<Vec<_>>();
+            let tmp_pattern = pattern
+                .iter()
+                .map(|fhe_int| fhe_int.clone().ciphertext.into_gpu(streams))
+                .collect::<Vec<_>>();
+
+            let result = gpu_key
+                .key
+                .key
+                .contains_sub_slice(&tmp_lhs, &tmp_pattern, streams);
+            FheBool::new(
+                result,
+                gpu_key.tag.clone(),
+                ReRandomizationMetadata::default(),
+            )
+        }
+        #[cfg(feature = "hpu")]
+        InternalServerKey::Hpu(_device) => {
+            panic!("Hpu does not support Array yet.")
+        }
+    })
+}
+
 pub fn fhe_array_contains<T>(data: &[T], value: &T) -> FheBool
 where
     T: FheIntegerType,
