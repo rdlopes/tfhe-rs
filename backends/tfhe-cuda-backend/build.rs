@@ -30,7 +30,8 @@ fn main() {
     // Cargo builds first as a dependency.
     if std::env::consts::OS == "linux" || std::env::consts::OS == "windows" {
         if std::env::consts::OS == "windows" {
-            // Force MSVC compiler version 14.44.35207 to prevent nvcc/cudafe++ crashes under VS 2026
+            // Force MSVC compiler version 14.44.35207 to prevent nvcc/cudafe++ crashes under VS
+            // 2026
             let msvc_toolset_dir = "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.44.35207";
             if std::path::Path::new(msvc_toolset_dir).exists() {
                 std::env::set_var("VCToolsVersion", "14.44.35207");
@@ -94,7 +95,8 @@ fn main() {
             }
             println!("cargo:rustc-link-lib=cudart");
         } else {
-            // Try to find the cuda libs with pkg-config, default to the path used by the nvidia runfile
+            // Try to find the cuda libs with pkg-config, default to the path used by the nvidia
+            // runfile
             if pkg_config::Config::new()
                 .atleast_version("10")
                 .probe("cuda")

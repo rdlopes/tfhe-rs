@@ -21,7 +21,8 @@ fn main() {
     // Cargo builds first as a dependency.
     if std::env::consts::OS == "linux" || std::env::consts::OS == "windows" {
         if std::env::consts::OS == "windows" {
-            // Force MSVC compiler version 14.44.35207 to prevent nvcc/cudafe++ crashes under VS 2026
+            // Force MSVC compiler version 14.44.35207 to prevent nvcc/cudafe++ crashes under VS
+            // 2026
             let msvc_toolset_dir = "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.44.35207";
             if std::path::Path::new(msvc_toolset_dir).exists() {
                 std::env::set_var("VCToolsVersion", "14.44.35207");
@@ -154,9 +155,7 @@ fn main() {
                 builder = builder.clang_arg(format!("-I{}/include", cuda_path));
             }
 
-            let bindings_generated = builder
-                .generate()
-                .expect("Unable to generate bindings");
+            let bindings_generated = builder.generate().expect("Unable to generate bindings");
 
             bindings_generated
                 .write_to_file(&out_path)

@@ -30,7 +30,9 @@ fn main() {
         let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")
             .expect("CARGO_MANIFEST_DIR must be set by cargo during build");
 
-        if std::env::consts::OS == "linux" && get_linux_distribution_name().as_deref() != Some("Ubuntu") {
+        if std::env::consts::OS == "linux"
+            && get_linux_distribution_name().as_deref() != Some("Ubuntu")
+        {
             println!(
                 "cargo:warning=This Linux distribution is not officially supported. \
                 Only Ubuntu is supported by tfhe-cuda-common at this time. Build may fail\n"
@@ -38,7 +40,8 @@ fn main() {
         }
 
         if std::env::consts::OS == "windows" {
-            // Force MSVC compiler version 14.44.35207 to prevent nvcc/cudafe++ crashes under VS 2026
+            // Force MSVC compiler version 14.44.35207 to prevent nvcc/cudafe++ crashes under VS
+            // 2026
             let msvc_toolset_dir = "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.44.35207";
             if std::path::Path::new(msvc_toolset_dir).exists() {
                 std::env::set_var("VCToolsVersion", "14.44.35207");
@@ -122,7 +125,10 @@ fn main() {
 fn generate_cuda_bind_bindings(manifest_dir: &str, include_dir: &PathBuf) {
     let header_path = include_dir.join("device.h");
     let build_script_path = PathBuf::from(manifest_dir).join("build.rs");
-    let headers = [header_path.to_str().unwrap(), build_script_path.to_str().unwrap()];
+    let headers = [
+        header_path.to_str().unwrap(),
+        build_script_path.to_str().unwrap(),
+    ];
     let out_path = PathBuf::from(manifest_dir).join("src").join("cuda_bind.rs");
 
     let bindings_modified = if out_path.exists() {
