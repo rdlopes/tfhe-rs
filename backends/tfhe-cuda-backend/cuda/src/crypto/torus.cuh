@@ -66,12 +66,14 @@ __device__ inline void typecast_torus_to_double<uint64_t>(uint64_t x,
   r = __ll2double_rn(x);
 }
 
+#if !defined(_MSC_VER) || defined(__clang__)
 template <>
 __device__ inline void typecast_torus_to_double<__uint128_t>(__uint128_t x,
                                                              double &r) {
   // We truncate x
   r = __ll2double_rn(static_cast<uint64_t>(x));
 }
+#endif
 
 // Helper to get signed integer type corresponding to Torus type at compile time
 template <typename Torus> struct signed_torus_type {

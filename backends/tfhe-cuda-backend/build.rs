@@ -28,7 +28,20 @@ fn main() {
 
     // Platform/distro check is performed by tfhe-cuda-common's build.rs, which
     // Cargo builds first as a dependency.
-    if std::env::consts::OS == "linux" {
+    if std::env::consts::OS == "linux" || std::env::consts::OS == "windows" {
+        if std::env::consts::OS == "windows" {
+            // Force MSVC compiler version 14.44.35207 to prevent nvcc/cudafe++ crashes under VS
+            // 2026
+            let msvc_toolset_dir = "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.44.35207";
+            if std::path::Path::new(msvc_toolset_dir).exists() {
+                std::env::set_var("VCToolsVersion", "14.44.35207");
+                let bin_dir = format!("{}\\bin\\HostX64\\x64", msvc_toolset_dir);
+                if let Ok(current_path) = std::env::var("PATH") {
+                    std::env::set_var("PATH", format!("{};{}", bin_dir, current_path));
+                }
+            }
+        }
+
         let mut cmake_config = cmake::Config::new("cuda");
 
         // Conditionally pass the "MULTI_ARCH" variable to CMake if the feature is enabled
@@ -64,20 +77,38 @@ fn main() {
         // Build the CMake project
         let dest = cmake_config.build();
         println!("cargo:rustc-link-search=native={}", dest.display());
+        if std::env::consts::OS == "windows" {
+            println!(
+                "cargo:rustc-link-search=native={}",
+                dest.join("lib/Release").display()
+            );
+            println!(
+                "cargo:rustc-link-search=native={}",
+                dest.join("lib/Debug").display()
+            );
+        }
         println!("cargo:rustc-link-lib=static=tfhe_cuda_backend");
 
-        // Try to find the cuda libs with pkg-config, default to the path used by the nvidia runfile
-        if pkg_config::Config::new()
-            .atleast_version("10")
-            .probe("cuda")
-            .is_err()
-        {
-            println!("cargo:rustc-link-search=native=/usr/local/cuda/lib64");
+        if std::env::consts::OS == "windows" {
+            if let Ok(cuda_path) = std::env::var("CUDA_PATH") {
+                println!("cargo:rustc-link-search=native={}\\lib\\x64", cuda_path);
+            }
+            println!("cargo:rustc-link-lib=cudart");
+        } else {
+            // Try to find the cuda libs with pkg-config, default to the path used by the nvidia
+            // runfile
+            if pkg_config::Config::new()
+                .atleast_version("10")
+                .probe("cuda")
+                .is_err()
+            {
+                println!("cargo:rustc-link-search=native=/usr/local/cuda/lib64");
+            }
+            println!("cargo:rustc-link-lib=gomp");
+            println!("cargo:rustc-link-lib=cudart");
+            println!("cargo:rustc-link-search=native=/usr/lib/x86_64-linux-gnu/");
+            println!("cargo:rustc-link-lib=stdc++");
         }
-        println!("cargo:rustc-link-lib=gomp");
-        println!("cargo:rustc-link-lib=cudart");
-        println!("cargo:rustc-link-search=native=/usr/lib/x86_64-linux-gnu/");
-        println!("cargo:rustc-link-lib=stdc++");
 
         let header_path = "wrapper.h";
         let headers = vec![
@@ -115,7 +146,7 @@ fn main() {
 
         // Regenerate bindings only if header has been modified
         if headers_modified > bindings_modified {
-            let bindings = bindgen::Builder::default()
+            let mut builder = bindgen::Builder::default()
                 .header(header_path)
                 // allow only what we are interested in, the custom types appearing in the interface
                 .allowlist_type("PBS_TYPE")
@@ -126,7 +157,13 @@ fn main() {
                 .clang_arg("c++")
                 .clang_arg("-std=c++17")
                 .clang_arg("-I/usr/include")
-                .clang_arg("-I/usr/local/include")
+                .clang_arg("-I/usr/local/include");
+
+            if let Ok(cuda_path) = std::env::var("CUDA_PATH") {
+                builder = builder.clang_arg(format!("-I{}/include", cuda_path));
+            }
+
+            let bindings = builder
                 .ctypes_prefix("ffi")
                 .raw_line("use crate::ffi;")
                 .generate()
@@ -138,7 +175,7 @@ fn main() {
         }
     } else {
         panic!(
-            "Error: platform not supported, tfhe-cuda-backend not built (only Linux is supported)"
+            "Error: platform not supported, tfhe-cuda-backend not built (only Linux and Windows are supported)"
         );
     }
 }

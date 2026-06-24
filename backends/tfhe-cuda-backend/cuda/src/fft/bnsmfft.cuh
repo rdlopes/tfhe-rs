@@ -56,8 +56,8 @@ template <class params> __device__ void NSMFFT_direct(double2 *A) {
   // it with simpler operations
 #pragma unroll
   for (Index i = 0; i < BUTTERFLY_DEPTH; ++i) {
-    w = v[i] * (double2){0.707106781186547461715008466854,
-                         0.707106781186547461715008466854};
+    w = v[i] * double2{0.707106781186547461715008466854,
+                        0.707106781186547461715008466854};
     v[i] = u[i] - w;
     u[i] = u[i] + w;
   }
@@ -181,8 +181,8 @@ __device__ void NSMFFT_direct_2_2_params(double2 *A, double2 *fft_out,
   // it with simpler operations
 #pragma unroll
   for (Index i = 0; i < BUTTERFLY_DEPTH; ++i) {
-    w = v[i] * (double2){0.707106781186547461715008466854,
-                         0.707106781186547461715008466854};
+    w = v[i] * double2{0.707106781186547461715008466854,
+                        0.707106781186547461715008466854};
     v[i] = u[i] - w;
     u[i] = u[i] + w;
   }
@@ -373,8 +373,8 @@ template <class params> __device__ void NSMFFT_inverse(double2 *A) {
   for (Index i = 0; i < BUTTERFLY_DEPTH; ++i) {
     w = (u[i] - v[i]);
     u[i] = u[i] + v[i];
-    v[i] = w * (double2){0.707106781186547461715008466854,
-                         -0.707106781186547461715008466854};
+    v[i] = w * double2{0.707106781186547461715008466854,
+                        -0.707106781186547461715008466854};
   }
   __syncthreads();
   // store registers in SM
@@ -504,8 +504,8 @@ __device__ void NSMFFT_inverse_2_2_params(double2 *A, double2 *buffer_regs,
     w = (u[i] - v[i]);
     buffer_regs[i] = u[i] + v[i];
     buffer_regs[i + params::opt / 2] =
-        w * (double2){0.707106781186547461715008466854,
-                      -0.707106781186547461715008466854};
+        w * double2{0.707106781186547461715008466854,
+                     -0.707106781186547461715008466854};
   }
 }
 

@@ -23,9 +23,15 @@ set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
 # Auto-detect CUDA compute capability
-set(OUTPUTFILE ${CMAKE_CURRENT_SOURCE_DIR}/cuda_script)
 set(CUDAFILE ${CMAKE_CURRENT_SOURCE_DIR}/check_cuda.cu)
-execute_process(COMMAND nvcc -lcuda ${CUDAFILE} -o ${OUTPUTFILE})
+if(WIN32)
+  set(OUTPUTFILE ${CMAKE_CURRENT_SOURCE_DIR}/cuda_script.exe)
+  execute_process(COMMAND nvcc ${CUDAFILE} -o ${OUTPUTFILE})
+else()
+  set(OUTPUTFILE ${CMAKE_CURRENT_SOURCE_DIR}/cuda_script)
+  execute_process(COMMAND nvcc -lcuda ${CUDAFILE} -o ${OUTPUTFILE})
+endif()
+
 execute_process(
   COMMAND ${OUTPUTFILE}
   RESULT_VARIABLE CUDA_RETURN_CODE
@@ -57,16 +63,28 @@ if(NOT CMAKE_BUILD_TYPE)
       CACHE STRING "Build type" FORCE)
 endif()
 
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
-set(CMAKE_CUDA_FLAGS_RELEASE "-O3 -DNDEBUG")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
-set(CMAKE_CUDA_FLAGS_DEBUG "-g -O0 -G")
+if(NOT MSVC)
+  set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+  set(CMAKE_CUDA_FLAGS_RELEASE "-O3 -DNDEBUG")
+  set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
+  set(CMAKE_CUDA_FLAGS_DEBUG "-g -O0 -G")
+else()
+  set(CMAKE_CXX_FLAGS_RELEASE "/O2 /DNDEBUG")
+  set(CMAKE_CUDA_FLAGS_RELEASE "-O3 -DNDEBUG")
+  set(CMAKE_CXX_FLAGS_DEBUG "/Od /Zi")
+  set(CMAKE_CUDA_FLAGS_DEBUG "-g -O0 -G")
+endif()
 
 if(${USE_NVTOOLS})
   add_definitions(-DUSE_NVTOOLS)
 endif()
 
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -Wall -Xcompiler -Wextra --use_fast_math --expt-relaxed-constexpr")
+if(NOT MSVC)
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -Wall -Xcompiler -Wextra")
+else()
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler /W3")
+endif()
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --use_fast_math --expt-relaxed-constexpr")
 
 set(COMMON_SOURCES src/device.cu src/helper_profile.cu)
 

@@ -19,12 +19,18 @@ if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS ${MINIMUM_SUPPORTED_CUDA_VERSION})
   message(FATAL_ERROR "CUDA ${MINIMUM_SUPPORTED_CUDA_VERSION} or greater is required for compilation.")
 endif()
 # Get CUDA compute capability (check_cuda.cu lives in tfhe-cuda-common)
-set(OUTPUTFILE ${CMAKE_CURRENT_SOURCE_DIR}/cuda_script) # No suffix required
 if(NOT TFHE_CUDA_COMMON_CHECK_CUDA_DIR)
   set(TFHE_CUDA_COMMON_CHECK_CUDA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../tfhe-cuda-common/cuda)
 endif()
 set(CUDAFILE ${TFHE_CUDA_COMMON_CHECK_CUDA_DIR}/check_cuda.cu)
-execute_process(COMMAND nvcc -lcuda ${CUDAFILE} -o ${OUTPUTFILE})
+if(WIN32)
+  set(OUTPUTFILE ${CMAKE_CURRENT_SOURCE_DIR}/cuda_script.exe)
+  execute_process(COMMAND nvcc ${CUDAFILE} -o ${OUTPUTFILE})
+else()
+  set(OUTPUTFILE ${CMAKE_CURRENT_SOURCE_DIR}/cuda_script)
+  execute_process(COMMAND nvcc -lcuda ${CUDAFILE} -o ${OUTPUTFILE})
+endif()
+
 execute_process(
   COMMAND ${OUTPUTFILE}
   RESULT_VARIABLE CUDA_RETURN_CODE
@@ -63,8 +69,12 @@ endif()
 find_package(OpenMP REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -g")
+if(NOT MSVC)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -g")
+else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3")
+endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler ${OpenMP_CXX_FLAGS}")
 if(${MULTI_ARCH})
@@ -88,11 +98,19 @@ if(CMAKE_BUILD_TYPE_LOWERCASE STREQUAL "debug")
   # Debug mode
   message("Compiling in Debug mode")
   add_definitions(-DDEBUG)
-  set(OPTIMIZATION_FLAGS "${OPTIMIZATION_FLAGS} -O0 -G -g")
+  if(NOT MSVC)
+    set(OPTIMIZATION_FLAGS "${OPTIMIZATION_FLAGS} -O0 -G -g")
+  else()
+    set(OPTIMIZATION_FLAGS "${OPTIMIZATION_FLAGS} -O0 -G -g")
+  endif()
   set(USE_NVTOOLS 1)
 elseif(CMAKE_BUILD_TYPE_LOWERCASE STREQUAL "debugonlycpu")
   message("Compiling GPU kernels in Release and CPU code in Debug")
-  set(OPTIMIZATION_FLAGS "${OPTIMIZATION_FLAGS} -O0 -g")
+  if(NOT MSVC)
+    set(OPTIMIZATION_FLAGS "${OPTIMIZATION_FLAGS} -O0 -g")
+  else()
+    set(OPTIMIZATION_FLAGS "${OPTIMIZATION_FLAGS} -O0 -g")
+  endif()
 else()
   # Release mode
   message("Compiling in Release mode")
@@ -112,10 +130,17 @@ endif()
 
 # in production, should use -arch=sm_70 --ptxas-options=-v to see register spills -lineinfo for better debugging to use
 # nvtx when profiling -lnvToolsExt
-set(CMAKE_CUDA_FLAGS
-    "${CMAKE_CUDA_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${OPTIMIZATION_FLAGS}\
-  -std=c++17 --no-exceptions  --expt-relaxed-constexpr -rdc=true \
-  --use_fast_math -Xcompiler -fPIC ")
+if(NOT WIN32)
+  set(CMAKE_CUDA_FLAGS
+      "${CMAKE_CUDA_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${OPTIMIZATION_FLAGS}\
+    -std=c++17 --no-exceptions  --expt-relaxed-constexpr -rdc=true \
+    --use_fast_math -Xcompiler -fPIC ")
+else()
+  set(CMAKE_CUDA_FLAGS
+      "${CMAKE_CUDA_FLAGS} ${OPTIMIZATION_FLAGS}\
+    -std=c++17 --expt-relaxed-constexpr -rdc=true \
+    --use_fast_math ")
+endif()
 
 set(INCLUDE_DIR include)
 

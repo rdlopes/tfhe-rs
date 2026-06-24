@@ -26,12 +26,17 @@ set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
 # Auto-detect CUDA compute capability (check_cuda.cu lives in tfhe-cuda-common)
-set(OUTPUTFILE ${CMAKE_CURRENT_SOURCE_DIR}/cuda_script)
 if(NOT TFHE_CUDA_COMMON_CHECK_CUDA_DIR)
   set(TFHE_CUDA_COMMON_CHECK_CUDA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../tfhe-cuda-common/cuda)
 endif()
 set(CUDAFILE ${TFHE_CUDA_COMMON_CHECK_CUDA_DIR}/check_cuda.cu)
-execute_process(COMMAND nvcc -lcuda ${CUDAFILE} -o ${OUTPUTFILE})
+if(WIN32)
+  set(OUTPUTFILE ${CMAKE_CURRENT_SOURCE_DIR}/cuda_script.exe)
+  execute_process(COMMAND nvcc ${CUDAFILE} -o ${OUTPUTFILE})
+else()
+  set(OUTPUTFILE ${CMAKE_CURRENT_SOURCE_DIR}/cuda_script)
+  execute_process(COMMAND nvcc -lcuda ${CUDAFILE} -o ${OUTPUTFILE})
+endif()
 execute_process(
   COMMAND ${OUTPUTFILE}
   RESULT_VARIABLE CUDA_RETURN_CODE
@@ -71,8 +76,12 @@ set(CMAKE_CUDA_FLAGS_RELEASE "-O3 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_CUDA_FLAGS_DEBUG "-g -O0 -G")
 
-# Additional CUDA flags (aligned with tfhe-cuda-backend)
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -Wall -Xcompiler -Wextra --use_fast_math --expt-relaxed-constexpr")
+if(NOT MSVC)
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -Wall -Xcompiler -Wextra")
+else()
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler /W3")
+endif()
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --use_fast_math --expt-relaxed-constexpr")
 
 # Core source files
 set(FP_CORE_SOURCES src/primitives/fp.cu src/primitives/fp2.cu src/primitives/xyzz.cu src/curve.cu

@@ -10,9 +10,7 @@
 
 inline CudaLweCiphertextListFFI
 to_lwe_ciphertext_list(CudaRadixCiphertextFFI *radix) {
-  return {.ptr = radix->ptr,
-          .num_radix_blocks = radix->num_radix_blocks,
-          .lwe_dimension = radix->lwe_dimension};
+  return {radix->ptr, radix->num_radix_blocks, radix->lwe_dimension};
 }
 
 template <typename Torus>

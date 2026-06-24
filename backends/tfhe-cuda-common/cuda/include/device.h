@@ -5,6 +5,32 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cuda_runtime.h>
+#include <cuda_fp16.h>
+
+#ifdef _MSC_VER
+typedef unsigned int uint;
+#ifndef __clang__
+typedef int64_t __int128_t;
+typedef uint64_t __uint128_t;
+#include <intrin.h>
+inline int __builtin_clz(unsigned int x) {
+  unsigned long index;
+  return _BitScanReverse(&index, x) ? (31 - index) : 32;
+}
+inline int __builtin_clzll(unsigned __int64 x) {
+  unsigned long index;
+  return _BitScanReverse64(&index, x) ? (63 - index) : 64;
+}
+inline int __builtin_ctz(unsigned int x) {
+  unsigned long index;
+  return _BitScanForward(&index, x) ? index : 32;
+}
+inline int __builtin_ctzll(unsigned __int64 x) {
+  unsigned long index;
+  return _BitScanForward64(&index, x) ? index : 64;
+}
+#endif
+#endif
 
 #define CEIL_DIV(M, N) (((M) + (N)-1) / (N))
 
@@ -36,7 +62,9 @@ inline void cuda_error(cudaError_t code, const char *file, int line) {
 #define PANIC_IF_FALSE(cond, format, ...)                                      \
   do {                                                                         \
     if (!(cond)) {                                                             \
-      PANIC(format "\n\n %s\n", ##__VA_ARGS__, #cond);                         \
+      std::fprintf(stderr, "%s::%d::%s: panic.\n" format "\n\n %s\n",          \
+                   __FILE__, __LINE__, __func__, ##__VA_ARGS__, #cond);        \
+      std::abort();                                                            \
     }                                                                          \
   } while (0)
 

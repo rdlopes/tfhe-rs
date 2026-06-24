@@ -12,8 +12,14 @@ template <typename... Args>
 inline bool checked_mul(size_t *out, size_t first, Args... rest) {
   size_t result = first;
   for (size_t value : {static_cast<size_t>(rest)...}) {
+#if defined(__GNUC__) || defined(__clang__)
     if (__builtin_mul_overflow(result, value, &result))
       return true;
+#else
+    if (result != 0 && value > ((size_t)-1) / result)
+      return true;
+    result *= value;
+#endif
   }
   *out = result;
   return false;

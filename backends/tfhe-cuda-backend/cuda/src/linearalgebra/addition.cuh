@@ -282,7 +282,7 @@ unchecked_sub_with_correcting_term(T *output, T const *input_1,
                                    uint32_t lwe_size, uint32_t message_modulus,
                                    uint32_t carry_modulus, uint32_t degree) {
   uint32_t msg_mod = message_modulus;
-  uint64_t z = max((uint64_t)ceil(degree / msg_mod), (uint64_t)1);
+  uint64_t z = max((uint64_t)CEIL_DIV(degree, msg_mod), (uint64_t)1);
   z *= msg_mod;
   uint64_t delta = (1ULL << 63) / (message_modulus * carry_modulus);
 

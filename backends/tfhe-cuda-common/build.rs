@@ -26,15 +26,30 @@ fn main() {
     println!("cargo::rerun-if-changed=cuda/CMakeLists.txt");
     println!("cargo::rerun-if-changed=src");
 
-    if std::env::consts::OS == "linux" {
+    if std::env::consts::OS == "linux" || std::env::consts::OS == "windows" {
         let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")
             .expect("CARGO_MANIFEST_DIR must be set by cargo during build");
 
-        if get_linux_distribution_name().as_deref() != Some("Ubuntu") {
+        if std::env::consts::OS == "linux"
+            && get_linux_distribution_name().as_deref() != Some("Ubuntu")
+        {
             println!(
                 "cargo:warning=This Linux distribution is not officially supported. \
                 Only Ubuntu is supported by tfhe-cuda-common at this time. Build may fail\n"
             );
+        }
+
+        if std::env::consts::OS == "windows" {
+            // Force MSVC compiler version 14.44.35207 to prevent nvcc/cudafe++ crashes under VS
+            // 2026
+            let msvc_toolset_dir = "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.44.35207";
+            if std::path::Path::new(msvc_toolset_dir).exists() {
+                std::env::set_var("VCToolsVersion", "14.44.35207");
+                let bin_dir = format!("{}\\bin\\HostX64\\x64", msvc_toolset_dir);
+                if let Ok(current_path) = std::env::var("PATH") {
+                    std::env::set_var("PATH", format!("{};{}", bin_dir, current_path));
+                }
+            }
         }
 
         let mut cmake_config = cmake::Config::new("cuda");
@@ -55,19 +70,35 @@ fn main() {
             "cargo:rustc-link-search=native={}",
             dest.join("lib").display()
         );
+        if std::env::consts::OS == "windows" {
+            println!(
+                "cargo:rustc-link-search=native={}",
+                dest.join("lib/Release").display()
+            );
+            println!(
+                "cargo:rustc-link-search=native={}",
+                dest.join("lib/Debug").display()
+            );
+        }
         println!("cargo:rustc-link-lib=static=tfhe_cuda_common");
 
-        if pkg_config::Config::new()
-            .atleast_version("10")
-            .probe("cuda")
-            .is_err()
-        {
-            println!("cargo:rustc-link-search=native=/usr/local/cuda/lib64");
+        if std::env::consts::OS == "windows" {
+            if let Ok(cuda_path) = std::env::var("CUDA_PATH") {
+                println!("cargo:rustc-link-search=native={}\\lib\\x64", cuda_path);
+            }
+            println!("cargo:rustc-link-lib=cudart");
+        } else {
+            if pkg_config::Config::new()
+                .atleast_version("10")
+                .probe("cuda")
+                .is_err()
+            {
+                println!("cargo:rustc-link-search=native=/usr/local/cuda/lib64");
+            }
+            println!("cargo:rustc-link-lib=cudart");
+            println!("cargo:rustc-link-search=native=/usr/lib/x86_64-linux-gnu/");
+            println!("cargo:rustc-link-lib=stdc++");
         }
-
-        println!("cargo:rustc-link-lib=cudart");
-        println!("cargo:rustc-link-search=native=/usr/lib/x86_64-linux-gnu/");
-        println!("cargo:rustc-link-lib=stdc++");
 
         // When a build script emits `cargo:KEY=VALUE` and the crate declares
         // `links = "foo"` in Cargo.toml, Cargo exposes it to dependent crates
@@ -86,14 +117,18 @@ fn main() {
         generate_cuda_bind_bindings(&manifest_dir, &include_dir);
     } else {
         panic!(
-            "Error: platform not supported, tfhe-cuda-common not built (only Linux is supported)"
+            "Error: platform not supported, tfhe-cuda-common not built (only Linux and Windows are supported)"
         );
     }
 }
 
 fn generate_cuda_bind_bindings(manifest_dir: &str, include_dir: &PathBuf) {
     let header_path = include_dir.join("device.h");
-    let headers = [header_path.to_str().unwrap()];
+    let build_script_path = PathBuf::from(manifest_dir).join("build.rs");
+    let headers = [
+        header_path.to_str().unwrap(),
+        build_script_path.to_str().unwrap(),
+    ];
     let out_path = PathBuf::from(manifest_dir).join("src").join("cuda_bind.rs");
 
     let bindings_modified = if out_path.exists() {
@@ -112,20 +147,30 @@ fn generate_cuda_bind_bindings(manifest_dir: &str, include_dir: &PathBuf) {
     }
 
     if headers_modified > bindings_modified {
-        let bindings = bindgen::Builder::default()
+        let mut builder = bindgen::Builder::default()
             .header(header_path.to_str().unwrap())
             .allowlist_function("cuda_.*")
             .blocklist_type("CUstream_st")
             .blocklist_type("CUevent_st")
+            .blocklist_type("cudaStream_t")
+            .blocklist_type("cudaEvent_t")
             .clang_arg("-x")
             .clang_arg("c++")
             .clang_arg("-std=c++17")
             .clang_arg(format!("-I{}", include_dir.display()))
             .clang_arg("-I/usr/include")
             .clang_arg("-I/usr/local/include")
-            .clang_arg("-I/usr/local/cuda/include")
+            .clang_arg("-I/usr/local/cuda/include");
+
+        if let Ok(cuda_path) = std::env::var("CUDA_PATH") {
+            builder = builder.clang_arg(format!("-I{}/include", cuda_path));
+        }
+
+        let bindings = builder
             .ctypes_prefix("ffi")
             .raw_line("use crate::ffi;")
+            .raw_line("pub type cudaStream_t = *mut ffi::c_void;")
+            .raw_line("pub type cudaEvent_t = *mut ffi::c_void;")
             .generate()
             .expect("Unable to generate cuda_bind bindings");
 
