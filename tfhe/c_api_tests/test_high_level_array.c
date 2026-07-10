@@ -19,9 +19,28 @@ FheUint8 **encrypt_str(const char *const str, const size_t str_len, const Client
   return result;
 }
 
+FheInt8 **encrypt_signed_str(const char *const str, const size_t str_len, const ClientKey *ck) {
+  assert(str != NULL && str_len > 0);
+
+  FheInt8 **result = malloc(sizeof(*result) * str_len);
+  assert(result != NULL);
+
+  for (size_t i = 0; i < str_len; ++i) {
+    assert(fhe_int8_try_encrypt_with_client_key_i8((int8_t)str[i], ck, &result[i]) == 0);
+  }
+  return result;
+}
+
 void destroy_fhe_uint8_array(FheUint8 **begin, const size_t len) {
   for (size_t i = 0; i < len; ++i) {
     fhe_uint8_destroy(begin[i]);
+  }
+  free(begin);
+}
+
+void destroy_fhe_int8_array(FheInt8 **begin, const size_t len) {
+  for (size_t i = 0; i < len; ++i) {
+    fhe_int8_destroy(begin[i]);
   }
   free(begin);
 }
@@ -57,6 +76,10 @@ int main(void) {
   FheUint8 **encrypted_pattern_1 = encrypt_str(pattern_1, pattern_1_len, client_key);
   FheUint8 **encrypted_pattern_2 = encrypt_str(pattern_2, pattern_2_len, client_key);
 
+  FheInt8 **encrypted_signed_sentence = encrypt_signed_str(sentence, sentence_len, client_key);
+  FheInt8 **encrypted_signed_pattern_1 = encrypt_signed_str(pattern_1, pattern_1_len, client_key);
+  FheInt8 **encrypted_signed_pattern_2 = encrypt_signed_str(pattern_2, pattern_2_len, client_key);
+
   // Equality
   {
     FheBool *result;
@@ -79,6 +102,34 @@ int main(void) {
 
     ok = fhe_uint8_array_eq(encrypted_sentence, sentence_len, encrypted_sentence, sentence_len,
                             &result);
+    assert(ok == 0);
+    ok = fhe_bool_decrypt(result, client_key, &clear_result);
+    assert(ok == 0 && clear_result == true);
+    fhe_bool_destroy(result);
+  }
+
+  // Signed Equality
+  {
+    FheBool *result;
+    bool clear_result;
+
+    // This one is trivial as the length are not the same
+    ok = fhe_int8_array_eq(encrypted_signed_sentence, sentence_len, encrypted_signed_pattern_1, pattern_1_len,
+                           &result);
+    assert(ok == 0);
+    ok = fhe_bool_decrypt(result, client_key, &clear_result);
+    assert(ok == 0 && clear_result == false);
+    fhe_bool_destroy(result);
+
+    ok = fhe_int8_array_eq(encrypted_signed_pattern_2, pattern_2_len, encrypted_signed_pattern_1, pattern_1_len,
+                           &result);
+    assert(ok == 0);
+    ok = fhe_bool_decrypt(result, client_key, &clear_result);
+    assert(ok == 0 && clear_result == false);
+    fhe_bool_destroy(result);
+
+    ok = fhe_int8_array_eq(encrypted_signed_sentence, sentence_len, encrypted_signed_sentence, sentence_len,
+                           &result);
     assert(ok == 0);
     ok = fhe_bool_decrypt(result, client_key, &clear_result);
     assert(ok == 0 && clear_result == true);
@@ -113,9 +164,41 @@ int main(void) {
     fhe_bool_destroy(result);
   }
 
+  // Signed contains sub slice
+  {
+    FheBool *result;
+    bool clear_result;
+
+    // This one is trivial as the length are not the same
+    ok = fhe_int8_array_contains_sub_slice(encrypted_signed_sentence, sentence_len, encrypted_signed_pattern_1,
+                                           pattern_1_len, &result);
+    assert(ok == 0);
+    ok = fhe_bool_decrypt(result, client_key, &clear_result);
+    assert(ok == 0 && clear_result == true);
+    fhe_bool_destroy(result);
+
+    ok = fhe_int8_array_contains_sub_slice(encrypted_signed_sentence, sentence_len, encrypted_signed_pattern_2,
+                                           pattern_2_len, &result);
+    assert(ok == 0);
+    ok = fhe_bool_decrypt(result, client_key, &clear_result);
+    assert(ok == 0 && clear_result == false);
+    fhe_bool_destroy(result);
+
+    ok = fhe_int8_array_contains_sub_slice(encrypted_signed_sentence, sentence_len, encrypted_signed_sentence,
+                                           sentence_len, &result);
+    assert(ok == 0);
+    ok = fhe_bool_decrypt(result, client_key, &clear_result);
+    assert(ok == 0 && clear_result == true);
+    fhe_bool_destroy(result);
+  }
+
   destroy_fhe_uint8_array(encrypted_sentence, sentence_len);
   destroy_fhe_uint8_array(encrypted_pattern_1, pattern_1_len);
   destroy_fhe_uint8_array(encrypted_pattern_2, pattern_2_len);
+
+  destroy_fhe_int8_array(encrypted_signed_sentence, sentence_len);
+  destroy_fhe_int8_array(encrypted_signed_pattern_1, pattern_1_len);
+  destroy_fhe_int8_array(encrypted_signed_pattern_2, pattern_2_len);
 
   client_key_destroy(client_key);
   server_key_destroy(server_key);
