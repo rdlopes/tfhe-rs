@@ -165,3 +165,20 @@ pub unsafe extern "C" fn shortint_deserialize_compressed_ciphertext(
         *result = Box::into_raw(heap_allocated_ciphertext);
     })
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn shortint_ciphertext_clone(
+    sself: *const ShortintCiphertext,
+    result: *mut *mut ShortintCiphertext,
+) -> c_int {
+    catch_panic(|| {
+        check_ptr_is_non_null_and_aligned(result).unwrap();
+
+        let ciphertext = get_ref_checked(sself).unwrap();
+
+        let heap_allocated_ciphertext = Box::new(ShortintCiphertext(ciphertext.0.clone()));
+
+        *result = Box::into_raw(heap_allocated_ciphertext);
+    })
+}
+
