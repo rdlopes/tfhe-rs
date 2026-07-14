@@ -97,6 +97,53 @@ int trivial_encrypt_test(const ClientKey *client_key) {
   return ok;
 }
 
+int bool_if_then_else_test(const ClientKey *client_key) {
+  int ok;
+  FheBool *cond = NULL;
+  FheBool *then_ct = NULL;
+  FheBool *else_ct = NULL;
+  FheBool *result = NULL;
+
+  ok = fhe_bool_try_encrypt_with_client_key_bool(true, client_key, &cond);
+  assert(ok == 0);
+  ok = fhe_bool_try_encrypt_with_client_key_bool(true, client_key, &then_ct);
+  assert(ok == 0);
+  ok = fhe_bool_try_encrypt_with_client_key_bool(false, client_key, &else_ct);
+  assert(ok == 0);
+
+  // Test true condition
+  ok = fhe_bool_if_then_else(cond, then_ct, else_ct, &result);
+  assert(ok == 0);
+
+  bool clear;
+  ok = fhe_bool_decrypt(result, client_key, &clear);
+  assert(ok == 0);
+  assert(clear == true);
+
+  fhe_bool_destroy(result);
+  result = NULL;
+
+  // Test false condition
+  fhe_bool_destroy(cond);
+  cond = NULL;
+  ok = fhe_bool_try_encrypt_with_client_key_bool(false, client_key, &cond);
+  assert(ok == 0);
+
+  ok = fhe_bool_if_then_else(cond, then_ct, else_ct, &result);
+  assert(ok == 0);
+
+  ok = fhe_bool_decrypt(result, client_key, &clear);
+  assert(ok == 0);
+  assert(clear == false);
+
+  fhe_bool_destroy(cond);
+  fhe_bool_destroy(then_ct);
+  fhe_bool_destroy(else_ct);
+  fhe_bool_destroy(result);
+
+  return ok;
+}
+
 int main(void) {
 
   ConfigBuilder *builder;
@@ -117,6 +164,7 @@ int main(void) {
   client_key_test(client_key);
   public_key_test(client_key, public_key);
   trivial_encrypt_test(client_key);
+  bool_if_then_else_test(client_key);
 
   client_key_destroy(client_key);
   public_key_destroy(public_key);

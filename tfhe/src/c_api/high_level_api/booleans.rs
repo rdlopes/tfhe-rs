@@ -79,3 +79,20 @@ pub unsafe extern "C" fn fhe_bool_compress(
         *result = Box::into_raw(Box::new(CompressedFheBool(compressed_inner)));
     })
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn fhe_bool_if_then_else(
+    sself: *const FheBool,
+    then_ct: *const FheBool,
+    else_ct: *const FheBool,
+    result: *mut *mut FheBool,
+) -> std::os::raw::c_int {
+    crate::c_api::utils::catch_panic(|| {
+        let cond = crate::c_api::utils::get_ref_checked(sself).unwrap();
+        let then_ct = crate::c_api::utils::get_ref_checked(then_ct).unwrap();
+        let else_ct = crate::c_api::utils::get_ref_checked(else_ct).unwrap();
+
+        let res = cond.0.if_then_else(&then_ct.0, &else_ct.0);
+        *result = Box::into_raw(Box::new(FheBool(res)));
+    })
+}
