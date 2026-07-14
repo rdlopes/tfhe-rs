@@ -19,6 +19,15 @@ int main(void) {
     ok = config_builder_default(&builder);
     assert(ok == 0);
 
+    assert(SHORTINT_COMP_PARAM_MESSAGE_2_CARRY_2_KS_PBS_TUNIFORM_2M128.br_level == 1);
+    assert(SHORTINT_COMP_PARAM_MESSAGE_2_CARRY_2_KS_PBS_TUNIFORM_2M128.br_base_log == 23);
+    assert(SHORTINT_COMP_PARAM_MESSAGE_2_CARRY_2_KS_PBS_TUNIFORM_2M128.packing_ks_level == 3);
+    assert(SHORTINT_COMP_PARAM_MESSAGE_2_CARRY_2_KS_PBS_TUNIFORM_2M128.packing_ks_base_log == 4);
+    assert(SHORTINT_COMP_PARAM_MESSAGE_2_CARRY_2_KS_PBS_TUNIFORM_2M128.packing_ks_polynomial_size == 256);
+    assert(SHORTINT_COMP_PARAM_MESSAGE_2_CARRY_2_KS_PBS_TUNIFORM_2M128.packing_ks_glwe_dimension == 4);
+    assert(SHORTINT_COMP_PARAM_MESSAGE_2_CARRY_2_KS_PBS_TUNIFORM_2M128.lwe_per_glwe == 256);
+    assert(SHORTINT_COMP_PARAM_MESSAGE_2_CARRY_2_KS_PBS_TUNIFORM_2M128.storage_log_modulus == 12);
+
     ok = config_builder_use_custom_parameters(
         &builder, SHORTINT_PARAM_MESSAGE_2_CARRY_2_KS_PBS_TUNIFORM_2M128);
     assert(ok == 0);

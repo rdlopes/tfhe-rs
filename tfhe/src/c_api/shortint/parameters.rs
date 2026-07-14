@@ -712,9 +712,111 @@ expose_as_shortint_pbs_parameters!(
     ]
 );
 
-pub struct CompressionParameters(
-    pub(crate) crate::shortint::parameters::list_compression::CompressionParameters,
-);
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct CompressionParameters {
+    pub br_level: usize,
+    pub br_base_log: usize,
+    pub packing_ks_level: usize,
+    pub packing_ks_base_log: usize,
+    pub packing_ks_polynomial_size: usize,
+    pub packing_ks_glwe_dimension: usize,
+    pub lwe_per_glwe: usize,
+    pub storage_log_modulus: usize,
+    pub packing_ks_key_noise_distribution: crate::c_api::core_crypto::DynamicDistribution,
+}
+
+impl CompressionParameters {
+    pub const fn convert(
+        rust_params: crate::shortint::parameters::list_compression::CompressionParameters,
+    ) -> Self {
+        match rust_params {
+            crate::shortint::parameters::list_compression::CompressionParameters::Classic(
+                classic,
+            ) => {
+                let crate::shortint::parameters::list_compression::ClassicCompressionParameters {
+                    br_level,
+                    br_base_log,
+                    packing_ks_level,
+                    packing_ks_base_log,
+                    packing_ks_polynomial_size,
+                    packing_ks_glwe_dimension,
+                    lwe_per_glwe,
+                    storage_log_modulus,
+                    packing_ks_key_noise_distribution,
+                } = classic;
+                Self {
+                    br_level: br_level.0,
+                    br_base_log: br_base_log.0,
+                    packing_ks_level: packing_ks_level.0,
+                    packing_ks_base_log: packing_ks_base_log.0,
+                    packing_ks_polynomial_size: packing_ks_polynomial_size.0,
+                    packing_ks_glwe_dimension: packing_ks_glwe_dimension.0,
+                    lwe_per_glwe: lwe_per_glwe.0,
+                    storage_log_modulus: storage_log_modulus.0,
+                    packing_ks_key_noise_distribution: packing_ks_key_noise_distribution
+                        .convert_to_c(),
+                }
+            }
+            crate::shortint::parameters::list_compression::CompressionParameters::MultiBit(
+                multibit,
+            ) => {
+                let crate::shortint::parameters::list_compression::MultiBitCompressionParameters {
+                    br_level,
+                    br_base_log,
+                    packing_ks_level,
+                    packing_ks_base_log,
+                    packing_ks_polynomial_size,
+                    packing_ks_glwe_dimension,
+                    lwe_per_glwe,
+                    storage_log_modulus,
+                    packing_ks_key_noise_distribution,
+                    decompression_grouping_factor: _,
+                } = multibit;
+                Self {
+                    br_level: br_level.0,
+                    br_base_log: br_base_log.0,
+                    packing_ks_level: packing_ks_level.0,
+                    packing_ks_base_log: packing_ks_base_log.0,
+                    packing_ks_polynomial_size: packing_ks_polynomial_size.0,
+                    packing_ks_glwe_dimension: packing_ks_glwe_dimension.0,
+                    lwe_per_glwe: lwe_per_glwe.0,
+                    storage_log_modulus: storage_log_modulus.0,
+                    packing_ks_key_noise_distribution: packing_ks_key_noise_distribution
+                        .convert_to_c(),
+                }
+            }
+        }
+    }
+}
+
+impl TryFrom<CompressionParameters>
+    for crate::shortint::parameters::list_compression::CompressionParameters
+{
+    type Error = &'static str;
+
+    fn try_from(c_params: CompressionParameters) -> Result<Self, Self::Error> {
+        use crate::shortint::parameters::{
+            CiphertextModulusLog, DecompositionBaseLog, DecompositionLevelCount, GlweDimension,
+            LweCiphertextCount, PolynomialSize,
+        };
+        Ok(Self::Classic(
+            crate::shortint::parameters::list_compression::ClassicCompressionParameters {
+                br_level: DecompositionLevelCount(c_params.br_level),
+                br_base_log: DecompositionBaseLog(c_params.br_base_log),
+                packing_ks_level: DecompositionLevelCount(c_params.packing_ks_level),
+                packing_ks_base_log: DecompositionBaseLog(c_params.packing_ks_base_log),
+                packing_ks_polynomial_size: PolynomialSize(c_params.packing_ks_polynomial_size),
+                packing_ks_glwe_dimension: GlweDimension(c_params.packing_ks_glwe_dimension),
+                lwe_per_glwe: LweCiphertextCount(c_params.lwe_per_glwe),
+                storage_log_modulus: CiphertextModulusLog(c_params.storage_log_modulus),
+                packing_ks_key_noise_distribution: c_params
+                    .packing_ks_key_noise_distribution
+                    .try_into()?,
+            },
+        ))
+    }
+}
 
 macro_rules! expose_as_shortint_compression_parameters(
     (
@@ -727,7 +829,7 @@ macro_rules! expose_as_shortint_compression_parameters(
             $(
                 #[no_mangle]
                 pub static [<SHORTINT_ $param_name>]: CompressionParameters =
-                    CompressionParameters(
+                    CompressionParameters::convert(
                         $param_name,
                     );
             )*
